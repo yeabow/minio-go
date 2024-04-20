@@ -53,6 +53,8 @@ type Client struct {
 	// Parsed endpoint url provided by the user.
 	endpointURL *url.URL
 
+	prefix string
+
 	// Holds various credential providers.
 	credsProvider *credentials.Credentials
 
@@ -124,6 +126,8 @@ type Options struct {
 	// Custom hash routines. Leave nil to use standard.
 	CustomMD5    func() md5simd.Hasher
 	CustomSHA256 func() md5simd.Hasher
+
+	Prefix string
 }
 
 // Global constants.
@@ -224,6 +228,8 @@ func privateNew(endpoint string, opts *Options) (*Client, error) {
 
 	// Save endpoint URL, user agent for future uses.
 	clnt.endpointURL = endpointURL
+
+	clnt.prefix = opts.Prefix
 
 	transport := opts.Transport
 	if transport == nil {
@@ -841,6 +847,11 @@ func (c *Client) newRequest(ctx context.Context, method string, metadata request
 			// Presign URL with signature v4.
 			req = signer.PreSignV4(*req, accessKeyID, secretAccessKey, sessionToken, location, metadata.expires)
 		}
+
+		if c.prefix != "" {
+			req.URL.Path = c.prefix + req.URL.Path
+		}
+
 		return req, nil
 	}
 
@@ -908,6 +919,10 @@ func (c *Client) newRequest(ctx context.Context, method string, metadata request
 
 		// Add signature version '4' authorization header.
 		req = signer.SignV4Trailer(*req, accessKeyID, secretAccessKey, sessionToken, location, metadata.trailer)
+	}
+
+	if c.prefix != "" {
+		req.URL.Path = c.prefix + req.URL.Path
 	}
 
 	// Return request.

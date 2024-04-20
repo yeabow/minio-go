@@ -252,5 +252,8 @@ func (c *Client) getBucketLocationRequest(ctx context.Context, bucketName string
 
 	req.Header.Set("X-Amz-Content-Sha256", contentSha256)
 	req = signer.SignV4(*req, accessKeyID, secretAccessKey, sessionToken, "us-east-1")
+	if c.prefix != "" {
+		req.URL.Path = c.prefix + req.URL.Path
+	}
 	return req, nil
 }
